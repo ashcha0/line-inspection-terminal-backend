@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.example.agvinhand.mapper.AgvConfigMapper">
+    <!-- 查询 -->
+    <select id="selectById" resultType="org.example.agvinhand.entity.AgvConfig">
+        SELECT * FROM agv_config WHERE id = #{id}
+    </select>
+    <!-- 插入 -->
+    <insert id="insert" parameterType="org.example.agvinhand.entity.AgvConfig" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO agv_config (host, drive_port, analysis_port, cloud_url, cam1, cam2, cam3, cam4, username1, username2, username3, username4, password1, password2, password3, password4, delete_flag)
+        VALUES (#{host}, #{drivePort}, #{analysisPort}, #{cloudUrl}, #{cam1}, #{cam2}, #{cam3}, #{cam4}, #{username1}, #{username2}, #{username3}, #{username4}, #{password1}, #{password2}, #{password3}, #{password4}, #{deleteFlag})
+    </insert>
+    <!-- 更新 -->
+    <update id="updateById" parameterType="org.example.agvinhand.entity.AgvConfig">
+        UPDATE agv_config SET
+            host = #{host},
+            drive_port = #{drivePort},
+            analysis_port = #{analysisPort},
+            cloud_url = #{cloudUrl},
+            cam1 = #{cam1},
+            cam2 = #{cam2},
+            cam3 = #{cam3},
+            cam4 = #{cam4},
+            username1 = #{username1},
+            username2 = #{username2},
+            username3 = #{username3},
+            username4 = #{username4},
+            password1 = #{password1},
+            password2 = #{password2},
+            password3 = #{password3},
+            password4 = #{password4},
+            delete_flag = #{deleteFlag}
+        WHERE id = #{id}
+    </update>
+    <!-- 删除 -->
+    <delete id="deleteById" parameterType="long">
+        DELETE FROM agv_config WHERE id = #{id}
+    </delete>
+</mapper> 

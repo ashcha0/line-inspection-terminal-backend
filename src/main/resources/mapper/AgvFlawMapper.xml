@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.example.agvinhand.mapper.AgvFlawMapper">
+    <!-- 查询 -->
+    <select id="selectById" resultType="org.example.agvinhand.entity.AgvFlaw">
+        SELECT * FROM agv_flaw WHERE id = #{id}
+    </select>
+    <!-- 插入 -->
+    <insert id="insert" parameterType="org.example.agvinhand.entity.AgvFlaw" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO agv_flaw (task_id, round, flaw_type, flaw_name, flaw_desc, flaw_distance, flaw_image, flaw_image_url, flaw_rtsp, shown, confirmed, uploaded, create_time, remark, flaw_length, flaw_area, level, count_num, delete_flag)
+        VALUES (#{taskId}, #{round}, #{flawType}, #{flawName}, #{flawDesc}, #{flawDistance}, #{flawImage}, #{flawImageUrl}, #{flawRtsp}, #{shown}, #{confirmed}, #{uploaded}, #{createTime}, #{remark}, #{flawLength}, #{flawArea}, #{level}, #{countNum}, #{deleteFlag})
+    </insert>
+    <!-- 更新 -->
+    <update id="updateById" parameterType="org.example.agvinhand.entity.AgvFlaw">
+        UPDATE agv_flaw SET
+            task_id = #{taskId},
+            round = #{round},
+            flaw_type = #{flawType},
+            flaw_name = #{flawName},
+            flaw_desc = #{flawDesc},
+            flaw_distance = #{flawDistance},
+            flaw_image = #{flawImage},
+            flaw_image_url = #{flawImageUrl},
+            flaw_rtsp = #{flawRtsp},
+            shown = #{shown},
+            confirmed = #{confirmed},
+            uploaded = #{uploaded},
+            create_time = #{createTime},
+            remark = #{remark},
+            flaw_length = #{flawLength},
+            flaw_area = #{flawArea},
+            level = #{level},
+            count_num = #{countNum},
+            delete_flag = #{deleteFlag}
+        WHERE id = #{id}
+    </update>
+    <!-- 删除 -->
+    <delete id="deleteById" parameterType="long">
+        DELETE FROM agv_flaw WHERE id = #{id}
+    </delete>
+</mapper> 

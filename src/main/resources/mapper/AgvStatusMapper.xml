@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.example.agvinhand.mapper.AgvStatusMapper">
+    <!-- 查询 -->
+    <select id="selectById" resultType="org.example.agvinhand.entity.AgvStatus">
+        SELECT * FROM agv_status WHERE id = #{id}
+    </select>
+    <!-- 插入 -->
+    <insert id="insert" parameterType="org.example.agvinhand.entity.AgvStatus" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO agv_status (sys_time, is_running, current_position, create_time)
+        VALUES (#{sysTime}, #{isRunning}, #{currentPosition}, #{createTime})
+    </insert>
+    <!-- 更新 -->
+    <update id="updateById" parameterType="org.example.agvinhand.entity.AgvStatus">
+        UPDATE agv_status SET
+            sys_time = #{sysTime},
+            is_running = #{isRunning},
+            current_position = #{currentPosition},
+            create_time = #{createTime}
+        WHERE id = #{id}
+    </update>
+    <!-- 删除 -->
+    <delete id="deleteById" parameterType="long">
+        DELETE FROM agv_status WHERE id = #{id}
+    </delete>
+</mapper> 
