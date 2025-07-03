@@ -1,0 +1,201 @@
+手持终端后端开发文档
+一、项目架构
+Spring Boot 3.x
+MyBatis-Plus 3.x
+MySQL 8.x
+Lombok
+Spring Validation
+Spring Web
+Springdoc-openapi（接口文档）
+Maven/Gradle
+二、数据库表结构设计
+1. agv_config（系统配置表）
+字段名	类型	约束	说明
+id	BIGINT	PK, AUTO_INC	主键
+host	VARCHAR(64)	NOT NULL	AGV主机IP
+drive_port	INT		驱动端口
+analysis_port	INT		分析端口
+cloud_url	VARCHAR(255)		云端地址
+cam1	VARCHAR(255)		摄像头1地址
+cam2	VARCHAR(255)		摄像头2地址
+cam3	VARCHAR(255)		摄像头3地址
+cam4	VARCHAR(255)		摄像头4地址
+username1	VARCHAR(64)		摄像头1用户名
+username2	VARCHAR(64)		摄像头2用户名
+username3	VARCHAR(64)		摄像头3用户名
+username4	VARCHAR(64)		摄像头4用户名
+password1	VARCHAR(64)		摄像头1密码
+password2	VARCHAR(64)		摄像头2密码
+password3	VARCHAR(64)		摄像头3密码
+password4	VARCHAR(64)		摄像头4密码
+delete_flag	TINYINT(1)	DEFAULT 0	逻辑删除
+2. agv_task（巡视任务表）
+字段名	类型	约束	说明
+id	BIGINT	PK, AUTO_INC	主键
+task_code	VARCHAR(64)	NOT NULL	任务编号
+task_name	VARCHAR(128)	NOT NULL	任务名称
+start_pos	VARCHAR(128)		起始地点
+task_trip	VARCHAR(64)		任务距离
+creator	VARCHAR(64)		创建人
+executor	VARCHAR(64)		执行人
+exec_time	DATETIME		最后一次执行时间
+end_time	DATETIME		巡视完成时间
+create_time	DATETIME	DEFAULT NOW	数据插入时间
+task_status	VARCHAR(32)		任务状态（待巡视/巡视中/待上传/已完成）
+round	INT		巡视轮次
+uploaded	TINYINT(1)	DEFAULT 0	是否已上传
+remark	VARCHAR(255)		备注
+cloud_task_id	BIGINT		云端主键
+delete_flag	TINYINT(1)	DEFAULT 0	逻辑删除
+3. agv_flaw（缺陷表）
+字段名	类型	约束	说明
+id	BIGINT	PK, AUTO_INC	主键
+task_id	BIGINT	NOT NULL	所属任务ID
+round	INT		巡视轮次
+flaw_type	VARCHAR(64)		缺陷类型
+flaw_name	VARCHAR(128)		缺陷名称
+flaw_desc	VARCHAR(255)		缺陷描述
+flaw_distance	DOUBLE		距离原点的距离
+flaw_image	VARCHAR(255)		缺陷图片路径
+flaw_image_url	VARCHAR(255)		缺陷图片URL
+flaw_rtsp	VARCHAR(255)		缺陷视频流地址
+shown	TINYINT(1)	DEFAULT 0	是否已弹窗提示
+confirmed	TINYINT(1)	DEFAULT 0	是否确认属实
+uploaded	TINYINT(1)	DEFAULT 0	是否已上传
+create_time	DATETIME	DEFAULT NOW	创建时间
+remark	VARCHAR(255)		补充说明
+flaw_length	DOUBLE		缺陷长度
+flaw_area	DOUBLE		缺陷面积
+level	VARCHAR(32)		缺陷等级
+count_num	INT		缺陷数量
+delete_flag	TINYINT(1)	DEFAULT 0	逻辑删除
+4. agv_status（AGV当前状态表，可选）
+字段名	类型	约束	说明
+id	BIGINT	PK, AUTO_INC	主键
+sys_time	VARCHAR(32)		AGV系统时间
+is_running	TINYINT(1)		是否在行驶
+current_position	DOUBLE		当前行驶距离
+create_time	DATETIME	DEFAULT NOW	记录时间
+三、后端模块设计
+1. 实体类（Entity）
+AgvConfig
+AgvTask
+AgvFlaw
+AgvStatus（可选）
+2. 数据访问层（Mapper/Repository）
+每个表对应一个Mapper接口，继承BaseMapper<T>（MyBatis-Plus）
+3. 业务逻辑层（Service）
+任务管理（增删改查、状态流转、统计分析）
+缺陷管理（增删改查、统计分析、批量导入导出）
+配置管理
+状态管理（可选）
+4. 控制器层（Controller）
+RESTful接口，严格遵循接口文档的字段和结构
+统一返回结构（AjaxResult）
+5. 统一返回结构
+public class AjaxResult<T> {
+    private Integer code; // 状态码
+    private String msg;   // 返回信息
+    private T data;       // 具体数据对象
+}
+code: 200成功，其他为失败
+msg: 提示信息
+data: 具体数据
+四、开发流程建议
+建表与实体类生成
+使用MySQL建表，字段严格参照上表
+使用MyBatis-Plus代码生成器生成Entity/Mapper/Service/Controller骨架
+实现基础CRUD
+每个表实现标准的增删改查接口
+返回结构统一为AjaxResult
+实现业务接口
+任务状态流转（待巡视→巡视中→待上传→已完成）
+缺陷确认、上传、统计等
+支持分页、条件查询
+数据分析与统计
+缺陷类型、等级、数量等统计
+任务完成率、历史趋势等分析接口
+接口文档与测试
+使用Springdoc-openapi自动生成接口文档
+Postman/Swagger测试所有接口，确保字段、类型、结构与前端/小车端一致
+异常与权限处理
+统一异常处理
+可选：接口权限校验
+五、示例建表SQL
+CREATE TABLE agv_task (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  task_code VARCHAR(64) NOT NULL,
+  task_name VARCHAR(128) NOT NULL,
+  start_pos VARCHAR(128),
+  task_trip VARCHAR(64),
+  creator VARCHAR(64),
+  executor VARCHAR(64),
+  exec_time DATETIME,
+  end_time DATETIME,
+  create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+  task_status VARCHAR(32),
+  round INT,
+  uploaded TINYINT(1) DEFAULT 0,
+  remark VARCHAR(255),
+  cloud_task_id BIGINT,
+  delete_flag TINYINT(1) DEFAULT 0
+);
+
+CREATE TABLE agv_flaw (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  task_id BIGINT NOT NULL,
+  round INT,
+  flaw_type VARCHAR(64),
+  flaw_name VARCHAR(128),
+  flaw_desc VARCHAR(255),
+  flaw_distance DOUBLE,
+  flaw_image VARCHAR(255),
+  flaw_image_url VARCHAR(255),
+  flaw_rtsp VARCHAR(255),
+  shown TINYINT(1) DEFAULT 0,
+  confirmed TINYINT(1) DEFAULT 0,
+  uploaded TINYINT(1) DEFAULT 0,
+  create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+  remark VARCHAR(255),
+  flaw_length DOUBLE,
+  flaw_area DOUBLE,
+  level VARCHAR(32),
+  count_num INT,
+  delete_flag TINYINT(1) DEFAULT 0
+);
+六、接口返回示例
+{
+  "code": 200,
+  "msg": "操作成功",
+  "data": [
+    {
+      "id": 1,
+      "taskId": 1001,
+      "round": 1,
+      "flawType": "裂纹",
+      "flawName": "轨道裂纹",
+      "flawDesc": "轨道表面出现裂纹",
+      "flawDistance": 12.5,
+      "flawImage": "/images/flaw1.jpg",
+      "flawImageUrl": "http://xxx.com/images/flaw1.jpg",
+      "flawRtsp": "rtsp://xxx",
+      "shown": true,
+      "confirmed": false,
+      "uploaded": false,
+      "createTime": "2024-06-01 10:00:00",
+      "remark": "",
+      "flawLength": 0.5,
+      "flawArea": 0.2,
+      "level": "高",
+      "countNum": 1,
+      "deleteFlag": false
+    }
+  ]
+}
+七、注意事项
+所有字段、类型、命名必须与接口文档严格一致
+所有接口返回结构必须为统一AjaxResult
+所有表均需有逻辑删除字段（delete_flag）
+时间类型建议用DATETIME，布尔用TINYINT(1)
+如需扩展，务必与前端/小车端同步字段和结构
+如需详细代码模板、接口示例或具体模块实现，可随时补充！
