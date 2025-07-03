@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.example.agvinhand.mapper.AgvTaskMapper">
+    <!-- 查询 -->
+    <select id="selectById" resultType="org.example.agvinhand.entity.AgvTask">
+        SELECT * FROM agv_task WHERE id = #{id}
+    </select>
+    <!-- 插入 -->
+    <insert id="insert" parameterType="org.example.agvinhand.entity.AgvTask" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO agv_task (task_code, task_name, start_pos, task_trip, creator, executor, exec_time, end_time, create_time, task_status, round, uploaded, remark, cloud_task_id, delete_flag)
+        VALUES (#{taskCode}, #{taskName}, #{startPos}, #{taskTrip}, #{creator}, #{executor}, #{execTime}, #{endTime}, #{createTime}, #{taskStatus}, #{round}, #{uploaded}, #{remark}, #{cloudTaskId}, #{deleteFlag})
+    </insert>
+    <!-- 更新 -->
+    <update id="updateById" parameterType="org.example.agvinhand.entity.AgvTask">
+        UPDATE agv_task SET
+            task_code = #{taskCode},
+            task_name = #{taskName},
+            start_pos = #{startPos},
+            task_trip = #{taskTrip},
+            creator = #{creator},
+            executor = #{executor},
+            exec_time = #{execTime},
+            end_time = #{endTime},
+            create_time = #{createTime},
+            task_status = #{taskStatus},
+            round = #{round},
+            uploaded = #{uploaded},
+            remark = #{remark},
+            cloud_task_id = #{cloudTaskId},
+            delete_flag = #{deleteFlag}
+        WHERE id = #{id}
+    </update>
+    <!-- 删除 -->
+    <delete id="deleteById" parameterType="long">
+        DELETE FROM agv_task WHERE id = #{id}
+    </delete>
+</mapper> 
