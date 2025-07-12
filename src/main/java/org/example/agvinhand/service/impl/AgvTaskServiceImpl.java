@@ -6,12 +6,17 @@ import org.example.agvinhand.service.AgvTaskService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 @Service
 public class AgvTaskServiceImpl implements AgvTaskService {
+    private static final Logger logger = Logger.getLogger(AgvTaskServiceImpl.class.getName());
+
     @Autowired
     private AgvTaskMapper agvTaskMapper;
 
@@ -32,7 +37,13 @@ public class AgvTaskServiceImpl implements AgvTaskService {
 
     @Override
     public boolean updateById(AgvTask task) {
-        return agvTaskMapper.updateById(task) > 0;
+        try {
+            return agvTaskMapper.updateById(task) > 0;
+        } catch (Exception e) {
+            logger.severe("更新任务失败: " + e.getMessage() + ", taskId=" + task.getId());
+            e.printStackTrace();
+            return false;
+        }
     }
 
     @Override
@@ -43,40 +54,88 @@ public class AgvTaskServiceImpl implements AgvTaskService {
     @Override
     public boolean syncTasks(List<AgvTask> remoteTasks) {
         try {
+            if (remoteTasks == null || remoteTasks.isEmpty()) {
+                logger.info("没有任务数据需要同步");
+                return true;
+            }
+
+            // 去除重复任务
+            List<AgvTask> uniqueRemoteTasks = removeDuplicates(remoteTasks);
+            logger.info("原始任务数量: " + remoteTasks.size() + ", 去重后数量: " + uniqueRemoteTasks.size());
+
             // 获取本地所有任务
             List<AgvTask> localTasks = listAll();
+            logger.info("本地任务数量: " + localTasks.size());
 
-            // 将本地任务按cloudTaskId分组，方便查找
-            Map<Long, AgvTask> localTaskMap = localTasks.stream()
-                    .filter(task -> task.getCloudTaskId() != null)
-                    .collect(Collectors.toMap(AgvTask::getCloudTaskId, task -> task));
-
-            // 遍历远端任务列表
-            for (AgvTask remoteTask : remoteTasks) {
-                if (remoteTask.getCloudTaskId() == null) {
-                    continue; // 跳过没有cloudTaskId的任务
-                }
-
-                AgvTask localTask = localTaskMap.get(remoteTask.getCloudTaskId());
-
-                if (localTask == null) {
-                    // 本地没有该任务，新增
-                    remoteTask.setId(null); // 确保使用自增ID
-                    save(remoteTask);
-                } else {
-                    // 本地已有该任务，检查是否需要更新
-                    if (needUpdate(localTask, remoteTask)) {
-                        remoteTask.setId(localTask.getId()); // 保持本地ID
-                        updateById(remoteTask);
-                    }
+            // 创建本地任务映射
+            Map<Long, AgvTask> localTaskMap = new HashMap<>();
+            for (AgvTask task : localTasks) {
+                if (task.getCloudTaskId() != null) {
+                    localTaskMap.put(task.getCloudTaskId(), task);
                 }
             }
 
+            int addCount = 0;
+            int updateCount = 0;
+
+            // 遍历远端任务列表
+            for (AgvTask remoteTask : uniqueRemoteTasks) {
+                if (remoteTask.getCloudTaskId() == null) {
+                    logger.warning("跳过没有cloudTaskId的任务: taskCode=" + remoteTask.getTaskCode());
+                    continue; // 跳过没有cloudTaskId的任务
+                }
+
+                try {
+                    AgvTask localTask = localTaskMap.get(remoteTask.getCloudTaskId());
+
+                    if (localTask == null) {
+                        // 本地没有该任务，新增
+                        remoteTask.setId(null); // 确保使用自增ID
+                        save(remoteTask);
+                        addCount++;
+                    } else {
+                        // 本地已有该任务，检查是否需要更新
+                        if (needUpdate(localTask, remoteTask)) {
+                            // 使用本地ID
+                            Long localId = localTask.getId();
+                            remoteTask.setId(localId);
+
+                            // 直接使用XML中定义的更新语句而不是MyBatis的自动映射
+                            if (updateById(remoteTask)) {
+                                updateCount++;
+                            }
+                        }
+                    }
+                } catch (Exception e) {
+                    // 记录异常但不中断同步
+                    logger.warning("处理任务数据时出错: " + e.getMessage() + ", taskId=" + remoteTask.getCloudTaskId());
+                    e.printStackTrace();
+                }
+            }
+
+            logger.info("任务同步完成: 新增=" + addCount + ", 更新=" + updateCount);
             return true;
         } catch (Exception e) {
+            logger.severe("任务同步发生异常: " + e.getMessage());
             e.printStackTrace();
             return false;
         }
+    }
+
+    /**
+     * 去除集合中的重复项
+     */
+    private List<AgvTask> removeDuplicates(List<AgvTask> tasks) {
+        Map<Long, AgvTask> uniqueTasks = new HashMap<>();
+
+        for (AgvTask task : tasks) {
+            if (task.getCloudTaskId() != null) {
+                // 如果有重复，保留最后一个
+                uniqueTasks.put(task.getCloudTaskId(), task);
+            }
+        }
+
+        return new ArrayList<>(uniqueTasks.values());
     }
 
     @Override
@@ -89,14 +148,33 @@ public class AgvTaskServiceImpl implements AgvTaskService {
      * 比较关键字段，如果不同则需要更新
      */
     private boolean needUpdate(AgvTask localTask, AgvTask remoteTask) {
-        // 比较关键字段
-        return !localTask.getTaskStatus().equals(remoteTask.getTaskStatus()) ||
-                !localTask.getTaskName().equals(remoteTask.getTaskName()) ||
-                !localTask.getTaskCode().equals(remoteTask.getTaskCode()) ||
-                !equals(localTask.getExecTime(), remoteTask.getExecTime()) ||
-                !equals(localTask.getEndTime(), remoteTask.getEndTime()) ||
-                !equals(localTask.getRound(), remoteTask.getRound()) ||
-                !equals(localTask.getUploaded(), remoteTask.getUploaded());
+        try {
+            // 比较关键字段
+            boolean needUpdate = false;
+
+            if (localTask.getTaskStatus() != null && remoteTask.getTaskStatus() != null) {
+                needUpdate = needUpdate || !localTask.getTaskStatus().equals(remoteTask.getTaskStatus());
+            }
+
+            if (localTask.getTaskName() != null && remoteTask.getTaskName() != null) {
+                needUpdate = needUpdate || !localTask.getTaskName().equals(remoteTask.getTaskName());
+            }
+
+            if (localTask.getTaskCode() != null && remoteTask.getTaskCode() != null) {
+                needUpdate = needUpdate || !localTask.getTaskCode().equals(remoteTask.getTaskCode());
+            }
+
+            needUpdate = needUpdate ||
+                    !equals(localTask.getExecTime(), remoteTask.getExecTime()) ||
+                    !equals(localTask.getEndTime(), remoteTask.getEndTime()) ||
+                    !equals(localTask.getRound(), remoteTask.getRound()) ||
+                    !equals(localTask.getUploaded(), remoteTask.getUploaded());
+
+            return needUpdate;
+        } catch (Exception e) {
+            logger.warning("比较任务更新时出错: " + e.getMessage());
+            return false;
+        }
     }
 
     /**
